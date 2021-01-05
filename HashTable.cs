@@ -16,6 +16,8 @@ namespace HashMap
         private int _arraySize;
         private const float _fillRatio = .7f;
         private List<KeyValuePair<T, T1>>[] _data;
+        private List<T> _keys;
+        private List<T1> _values;
 
         public HashTable() : this(120)
         {
@@ -28,6 +30,8 @@ namespace HashMap
             if (_algorithme is null) _algorithme = SHA256.Create();
 
             _data = new List<KeyValuePair<T, T1>>[_arraySize];
+            _keys = new();
+            _values = new();
         }
 
         public T1 this[T key]
@@ -51,29 +55,9 @@ namespace HashMap
             }
         }
 
-        public ICollection<T> Keys
-        {
-            get
-            {
-                List<T> keys = new List<T>();
-                foreach (var l in _data)
-                    if (l is not null)
-                        keys.AddRange(l.Select(kv => kv.Key).ToArray());
-                return keys;
-            }
-        }
+        public ICollection<T> Keys => _keys;
 
-        public ICollection<T1> Values
-        {
-            get
-            {
-                List<T1> values = new List<T1>();
-                foreach (var l in _data)
-                    if (l is not null)
-                        values.AddRange(l.Select(kv => kv.Value).ToArray());
-                return values;
-            }
-        }
+        public ICollection<T1> Values => _values;
 
         public int Count => _count;
 
@@ -111,6 +95,8 @@ namespace HashMap
                 _data[index] = new List<KeyValuePair<T, T1>>();
 
             _data[index].Add(new KeyValuePair<T, T1>(key, value));
+            _keys.Add(key);
+            _values.Add(value);
             _count++;
         }
 
@@ -125,6 +111,8 @@ namespace HashMap
             _count = 0;
 
             _data = new List<KeyValuePair<T, T1>>[_arraySize];
+            _keys.Clear();
+            _values.Clear();
         }
 
         public bool Contains(KeyValuePair<T, T1> item)
@@ -167,13 +155,15 @@ namespace HashMap
                 if (pairs[i].Key.Equals(key))
                 {
                     sub_index = i;
-                    break;
+                    pairs.RemoveAt(sub_index);
+                    _count--;
+                    _keys.Remove(pairs[i].Key);
+                    _values.Remove(pairs[i].Value);
+                    return true;
                 }
-            if (sub_index == -1) return false;
 
-            pairs.RemoveAt(sub_index);
-            _count--;
-            return true;
+            return false;
+
         }
 
         public bool Remove(KeyValuePair<T, T1> item)
@@ -218,16 +208,7 @@ namespace HashMap
 
         int getIndex(T key)
         {
-            BinaryFormatter formatter = new();
-            using MemoryStream ms = new();
-
-#pragma warning disable
-            formatter.Serialize(ms, (object)key);
-#pragma warning restore
-
-            var data = ms.ToArray();
-            var hash = _algorithme.ComputeHash(data);
-            return Math.Abs(BitConverter.ToInt32(hash, 0) % _arraySize);
+            return Math.Abs(key.GetHashCode() % _arraySize);
         }
 
     }
