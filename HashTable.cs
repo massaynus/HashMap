@@ -187,7 +187,7 @@ namespace HashMap
 
         int getNextPrimeNumber(int current)
         {
-            int count = 0;
+            int count;
             do
             {
                 current++;
