@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace HashMap
 {
-    class HashTable<T, T1> : IDictionary<T, T1>
+    class HashTable<T, T1> : IDictionary<T, T1> where T : IEquatable<T>
     {
         private static SHA256 _algorithme;
         private int _count;
@@ -41,7 +41,12 @@ namespace HashMap
                 if (!ContainsKey(key)) throw new KeyNotFoundException();
                 int index = getIndex(key);
                 var pairs = _data[index];
-                return pairs.Where(p => p.Key.Equals(key)).FirstOrDefault().Value;
+                for (int i = 0; i < pairs.Count; i++)
+                {
+                    var pair = pairs[i];
+                    if (pair.Key.Equals(key)) return pair.Value;
+                }
+                return default;
             }
             set
             {
