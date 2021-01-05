@@ -65,7 +65,12 @@ namespace HashMap
 
         public void Add(T key, T1 value)
         {
-            if (ContainsKey(key))
+            Add(new(key, value));
+        }
+
+        public void Add(KeyValuePair<T, T1> item)
+        {
+            if (ContainsKey(item.Key))
                 throw new InvalidOperationException("Key already exists");
 
             if (_arraySize * _fillRatio < _count)
@@ -77,32 +82,22 @@ namespace HashMap
                 {
                     int idx = getIndex(pair.Key);
                     if (tempK[idx] is null)
-                    {
-                        tempK[idx] = new List<KeyValuePair<T, T1>>() { pair };
-                    }
-                    else
-                    {
-                        tempK[idx].Add(pair);
-                    }
+                        tempK[idx] = new();
+
+                    tempK[idx].Add(pair);
                 }
 
                 _data = tempK;
             }
 
-            int index = getIndex(key);
-
+            int index = getIndex(item.Key);
             if (_data[index] is null)
-                _data[index] = new List<KeyValuePair<T, T1>>();
+                _data[index] = new();
 
-            _data[index].Add(new KeyValuePair<T, T1>(key, value));
-            _keys.Add(key);
-            _values.Add(value);
+            _data[index].Add(item);
+            _keys.Add(item.Key);
+            _values.Add(item.Value);
             _count++;
-        }
-
-        public void Add(KeyValuePair<T, T1> item)
-        {
-            Add(item.Key, item.Value);
         }
 
         public void Clear()
@@ -138,10 +133,10 @@ namespace HashMap
 
         public IEnumerator<KeyValuePair<T, T1>> GetEnumerator()
         {
-            foreach (var list in _data)
-                if (list is not null)
-                    foreach (var pair in list)
-                        yield return pair;
+            for (int i = 0; i < _keys.Count; i++)
+            {
+                yield return new KeyValuePair<T, T1>(_keys[i], _values[i]);
+            }
         }
 
         public bool Remove(T key)
