@@ -175,7 +175,7 @@ namespace HashMap
             }
             else
             {
-                value = Activator.CreateInstance<T1>();
+                value = default;
                 return false;
             }
         }
