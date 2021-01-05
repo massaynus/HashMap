@@ -55,7 +55,9 @@ namespace HashMap
             get
             {
                 List<T> keys = new List<T>();
-                foreach (var l in _data) keys.AddRange(l.Select(kv => kv.Key).ToArray());
+                foreach (var l in _data)
+                    if (l is not null)
+                        keys.AddRange(l.Select(kv => kv.Key).ToArray());
                 return keys;
             }
         }
@@ -65,7 +67,9 @@ namespace HashMap
             get
             {
                 List<T1> values = new List<T1>();
-                foreach (var l in _data) values.AddRange(l.Select(kv => kv.Value).ToArray());
+                foreach (var l in _data)
+                    if (l is not null)
+                        values.AddRange(l.Select(kv => kv.Value).ToArray());
                 return values;
             }
         }
@@ -162,6 +166,7 @@ namespace HashMap
             if (sub_index == -1) return false;
 
             pairs.RemoveAt(sub_index);
+            _count--;
             return true;
         }
 
