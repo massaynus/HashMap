@@ -10,8 +10,8 @@ namespace HashMap
     {
         static void Main(string[] args)
         {
-            var count = 10_000;
-            HashTable<int, string> table = new((int)(count * 1.35f));
+            var count = 300_000;
+            HashTable<int, string> table = new((int)(count * .7f));
             var str = "YY";
             Stopwatch addW = new();
             Console.WriteLine($"Test pool size: {count}");
