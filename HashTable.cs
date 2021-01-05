@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace HashMap
 {
@@ -14,7 +15,7 @@ namespace HashMap
         private static SHA256 _algorithme;
         private int _count;
         private int _arraySize;
-        private const float _fillRatio = .7f;
+        private const float _fillRatio = .85f;
         private List<KeyValuePair<T, T1>>[] _data;
         private List<T> _keys;
         private List<T1> _values;
@@ -93,6 +94,15 @@ namespace HashMap
                 }
 
                 _data = tempK;
+
+                for (int i = 0; i < tempK.Length; i++)
+                {
+                    if (tempK[i] is not null)
+                    {
+                        tempK[i].Clear();
+                        tempK[i] = null;
+                    }
+                }
             }
 
             int index = getIndex(item.Key);
@@ -192,6 +202,7 @@ namespace HashMap
 
         int getNextPrimeNumber(int current)
         {
+            current *= 2;
             int count;
             do
             {
