@@ -10,35 +10,27 @@ namespace HashMap
     {
         static void Main(string[] args)
         {
-            bool test = true;
-            int count = 10000;
+            var count = 10_000;
+            HashTable<int, string> table = new((int)(count * 1.35f));
+            var str = "YY";
+            Stopwatch addW = new();
+            Console.WriteLine($"Test pool size: {count}");
 
-            Stopwatch watch = new();
-            watch.Start();
-            HashTable<int, string> t = new(count * 2);
-            for (int n = 0; n < count; n++)
-            {
-                t.Add(n, $"Y{n}");
-            }
-            watch.Stop();
+            addW.Start();
+            for (int i = 0; i < count; i++)
+                table.Add(new(i, str));
 
-            while (true)
-            {
-                HashTable<int, string> table = new();
-                foreach (var n in Enumerable.Range(0, count))
-                {
-                    table.Add(n, $"Y{n}");
-                }
+            addW.Stop();
+            Console.WriteLine($"avg addition: {addW.ElapsedTicks / count / 100} nano second");
+            addW.Reset();
 
-                foreach (var n in Enumerable.Range(0, count))
-                {
-                    test &= table[n] == $"Y{n}";
-                }
+            addW.Start();
+            for (int i = 0; i < count; i++)
+                _ = table[i];
+            addW.Stop();
+            Console.WriteLine($"avg retrieval: {addW.ElapsedTicks / count / 100} nano second");
 
-                count *= 2;
-                if (!test || count > 10_000_000)
-                    break;
-            }
+            Console.ReadLine();
         }
     }
 }
