@@ -17,14 +17,14 @@ namespace HashMap
         private const float _fillRatio = .7f;
         private List<KeyValuePair<T, T1>>[] _data;
 
-        public HashTable() : this(127)
+        public HashTable() : this(120)
         {
         }
 
         public HashTable(int size)
         {
             _count = 0;
-            _arraySize = size;
+            _arraySize = getNextPrimeNumber(size);
             _algorithme = SHA256.Create();
 
             _data = new List<KeyValuePair<T, T1>>[_arraySize];
@@ -34,6 +34,7 @@ namespace HashMap
         {
             get
             {
+                if (!ContainsKey(key)) throw new KeyNotFoundException();
                 int index = getIndex(key);
                 var pairs = _data[index];
                 return pairs.Where(p => p.Key.Equals(key)).FirstOrDefault().Value;
@@ -83,17 +84,30 @@ namespace HashMap
             if (ContainsKey(key))
                 throw new InvalidOperationException("Key already exists");
 
-            if (_arraySize * _fillRatio > _count)
+            if (_arraySize * _fillRatio < _count)
             {
                 _arraySize = getNextPrimeNumber(_arraySize);
                 var tempK = new List<KeyValuePair<T, T1>>[_arraySize];
 
+                foreach (var pair in this)
+                {
+                    int idx = getIndex(pair.Key);
+                    if (tempK[idx] is null)
+                    {
+                        tempK[idx] = new List<KeyValuePair<T, T1>>() { pair };
+                    }
+                    else
+                    {
+                        tempK[idx].Add(pair);
+                    }
+                }
 
-                Array.Copy(_data, tempK, _count);
+
                 _data = tempK;
             }
 
             int index = getIndex(key);
+
             if (_data[index] is null)
             {
                 _data[index] = new List<KeyValuePair<T, T1>>()
@@ -146,8 +160,9 @@ namespace HashMap
         public IEnumerator<KeyValuePair<T, T1>> GetEnumerator()
         {
             foreach (var list in _data)
-                foreach (var pair in list)
-                    yield return pair;
+                if (list is not null)
+                    foreach (var pair in list)
+                        yield return pair;
         }
 
         public bool Remove(T key)
