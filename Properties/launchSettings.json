@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "HashMap": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
