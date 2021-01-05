@@ -11,7 +11,7 @@ namespace HashMap
 {
     class HashTable<T, T1> : IDictionary<T, T1>
     {
-        private SHA256 _algorithme;
+        private static SHA256 _algorithme;
         private int _count;
         private int _arraySize;
         private const float _fillRatio = .7f;
@@ -25,7 +25,7 @@ namespace HashMap
         {
             _count = 0;
             _arraySize = getNextPrimeNumber(size);
-            _algorithme = SHA256.Create();
+            if (_algorithme is null) _algorithme = SHA256.Create();
 
             _data = new List<KeyValuePair<T, T1>>[_arraySize];
         }
