@@ -102,24 +102,15 @@ namespace HashMap
                     }
                 }
 
-
                 _data = tempK;
             }
 
             int index = getIndex(key);
 
             if (_data[index] is null)
-            {
-                _data[index] = new List<KeyValuePair<T, T1>>()
-                {
-                    new KeyValuePair<T, T1>(key, value)
-                };
-            }
-            else
-            {
-                _data[index].Add(new KeyValuePair<T, T1>(key, value));
-            }
+                _data[index] = new List<KeyValuePair<T, T1>>();
 
+            _data[index].Add(new KeyValuePair<T, T1>(key, value));
             _count++;
         }
 
