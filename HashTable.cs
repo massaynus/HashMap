@@ -1,12 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
+using System.Linq;
 
 namespace HashMap
 {
@@ -15,8 +14,8 @@ namespace HashMap
         private SHA256 _algorithme;
         private int _count;
         private int _arraySize;
-        private T[] keys, values;
-
+        private const float _fillRatio = .7f;
+        private List<KeyValuePair<T, T1>>[] _data;
 
         public HashTable() : this(127)
         {
@@ -24,64 +23,173 @@ namespace HashMap
 
         public HashTable(int size)
         {
+            _count = 0;
             _arraySize = size;
             _algorithme = SHA256.Create();
 
-            keys = new T[_arraySize];
-            values = new T[_arraySize];
+            _data = new List<KeyValuePair<T, T1>>[_arraySize];
         }
 
-        T1 IDictionary<T, T1>.this[T key] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        ICollection<T> IDictionary<T, T1>.Keys => throw new NotImplementedException();
-
-        ICollection<T1> IDictionary<T, T1>.Values => throw new NotImplementedException();
-
-        int ICollection<KeyValuePair<T, T1>>.Count => throw new NotImplementedException();
-
-        bool ICollection<KeyValuePair<T, T1>>.IsReadOnly => throw new NotImplementedException();
-
-        void IDictionary<T, T1>.Add(T key, T1 value)
+        public T1 this[T key]
         {
-            throw new NotImplementedException();
+            get
+            {
+                int index = getIndex(key);
+                var pairs = _data[index];
+                return pairs.Where(p => p.Key.Equals(key)).FirstOrDefault().Value;
+            }
+            set
+            {
+                int index = getIndex(key);
+                var pairs = _data[index];
+                var targetPair = pairs.Where(p => p.Key.Equals(key)).FirstOrDefault();
+                if (targetPair.Key is null) throw new KeyNotFoundException();
+                KeyValuePair<T, T1> newPair = new KeyValuePair<T, T1>(targetPair.Key, value);
+                pairs.Remove(targetPair);
+                pairs.Add(newPair);
+            }
         }
 
-        void ICollection<KeyValuePair<T, T1>>.Add(KeyValuePair<T, T1> item)
+        public ICollection<T> Keys
         {
-            throw new NotImplementedException();
+            get
+            {
+                List<T> keys = new List<T>();
+                foreach (var l in _data) keys.AddRange(l.Select(kv => kv.Key).ToArray());
+                return keys;
+            }
         }
 
-        void ICollection<KeyValuePair<T, T1>>.Clear()
+        public ICollection<T1> Values
         {
-            throw new NotImplementedException();
+            get
+            {
+                List<T1> values = new List<T1>();
+                foreach (var l in _data) values.AddRange(l.Select(kv => kv.Value).ToArray());
+                return values;
+            }
         }
 
-        bool ICollection<KeyValuePair<T, T1>>.Contains(KeyValuePair<T, T1> item)
+        public int Count => _count;
+
+        public bool IsReadOnly => false;
+
+        public void Add(T key, T1 value)
         {
-            throw new NotImplementedException();
+            if (ContainsKey(key))
+                throw new InvalidOperationException("Key already exists");
+
+            if (_arraySize * _fillRatio > _count)
+            {
+                _arraySize = getNextPrimeNumber(_arraySize);
+                var tempK = new List<KeyValuePair<T, T1>>[_arraySize];
+
+
+                Array.Copy(_data, tempK, _count);
+                _data = tempK;
+            }
+
+            int index = getIndex(key);
+            if (_data[index] is null)
+            {
+                _data[index] = new List<KeyValuePair<T, T1>>()
+                {
+                    new KeyValuePair<T, T1>(key, value)
+                };
+            }
+            else
+            {
+                _data[index].Add(new KeyValuePair<T, T1>(key, value));
+            }
+
+            _count++;
         }
 
-        bool IDictionary<T, T1>.ContainsKey(T key)
+        public void Add(KeyValuePair<T, T1> item)
         {
-            throw new NotImplementedException();
+            Add(item.Key, item.Value);
         }
 
-        void ICollection<KeyValuePair<T, T1>>.CopyTo(KeyValuePair<T, T1>[] array, int arrayIndex)
+        public void Clear()
         {
-            throw new NotImplementedException();
+            _arraySize = 127;
+            _count = 0;
+
+            _data = new List<KeyValuePair<T, T1>>[_arraySize];
         }
 
-        IEnumerator<KeyValuePair<T, T1>> IEnumerable<KeyValuePair<T, T1>>.GetEnumerator()
+        public bool Contains(KeyValuePair<T, T1> item)
         {
-            throw new NotImplementedException();
+            return _data.Where(l => l.Contains(item)).Count() == 1;
+        }
+
+        public bool ContainsKey(T key)
+        {
+            return Keys.Contains(key);
+        }
+
+        public void CopyTo(KeyValuePair<T, T1>[] array, int arrayIndex)
+        {
+            List<KeyValuePair<T, T1>> pairs = new List<KeyValuePair<T, T1>>();
+            foreach (var list in _data) pairs.AddRange(list);
+
+            for (int i = arrayIndex, y = 0; i < array.Length; i++, y++)
+            {
+                array[i] = pairs[y];
+            }
+        }
+
+        public IEnumerator<KeyValuePair<T, T1>> GetEnumerator()
+        {
+            foreach (var list in _data)
+                foreach (var pair in list)
+                    yield return pair;
+        }
+
+        public bool Remove(T key)
+        {
+            int index = getIndex(key);
+            var pairs = _data[index];
+            if (pairs is null) return false;
+
+            int sub_index = -1;
+            for (int i = 0; i < pairs.Count; i++)
+                if (pairs[i].Key.Equals(key))
+                {
+                    sub_index = i;
+                    break;
+                }
+            if (sub_index == -1) return false;
+
+            pairs.RemoveAt(sub_index);
+            return true;
+        }
+
+        public bool Remove(KeyValuePair<T, T1> item)
+        {
+            return Remove(item.Key);
+        }
+
+        public bool TryGetValue(T key, [MaybeNullWhen(false)] out T1 value)
+        {
+            if (ContainsKey(key))
+            {
+                value = this[key];
+                return true;
+            }
+            else
+            {
+                value = Activator.CreateInstance<T1>();
+                return false;
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new NotImplementedException();
+            return GetEnumerator();
         }
 
-        int nextPrimeNumber(int current)
+        int getNextPrimeNumber(int current)
         {
             int count = 0;
             do
@@ -97,7 +205,7 @@ namespace HashMap
             return current;
         }
 
-        int NormalizeIndex(T key)
+        int getIndex(T key)
         {
             BinaryFormatter formatter = new();
             using MemoryStream ms = new();
@@ -111,19 +219,5 @@ namespace HashMap
             return Math.Abs(BitConverter.ToInt32(hash, 0) % _arraySize);
         }
 
-        bool IDictionary<T, T1>.Remove(T key)
-        {
-            throw new NotImplementedException();
-        }
-
-        bool ICollection<KeyValuePair<T, T1>>.Remove(KeyValuePair<T, T1> item)
-        {
-            throw new NotImplementedException();
-        }
-
-        bool IDictionary<T, T1>.TryGetValue(T key, out T1 value)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
